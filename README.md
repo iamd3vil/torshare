@@ -1,4 +1,4 @@
-# TorShare
+# TorShare :rocket: :zap:
 
 TorShare enables file sharing between two parties over Tor.
 
