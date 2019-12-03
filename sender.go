@@ -2,29 +2,57 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/howeyc/gopass"
 	"github.com/iamd3vil/torshare/models"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
+type hub struct {
+	shutdownChan chan int
+	srv          *http.Server
+}
+
+func (h *hub) Serve(l net.Listener) error {
+	go func() {
+		<-h.shutdownChan
+
+		log.Println("Transfer complete. Shutting down in 5 secs...")
+		time.Sleep(5 * time.Second)
+
+		h.srv.Shutdown(context.Background())
+	}()
+	return h.srv.Serve(l)
+}
+
+func (h *hub) handleTransferComplete(w http.ResponseWriter, r *http.Request) {
+	// Shutdown sender since transfer is complete
+	close(h.shutdownChan)
+	w.Write([]byte("OK"))
+}
+
 func startSender(dir, filename, relay string) {
-	var password string
-	fmt.Printf("Enter Password:")
-	_, err := fmt.Scan(&password)
+	fmt.Printf("Enter Password: ")
+
+	password, err := gopass.GetPasswdMasked()
 	if err != nil {
 		log.Fatalf("error while reading password: %v", err)
 	}
 
-	if password == "" {
+	if string(password) == "" {
 		log.Fatalln("Password cannot be empty")
 	}
 
@@ -42,15 +70,33 @@ func startSender(dir, filename, relay string) {
 		FileName: filename,
 	}
 
-	channel, err := sendMsgToRelay(rMsg, relay, password)
+	channel, err := sendMsgToRelay(rMsg, relay, string(password))
 	if err != nil {
-		log.Fatalf("error while handshake: %v", err)
+		log.Printf("error while handshake: %v", err)
+		return
 	}
 
 	log.Printf("Channel Name(Has to be communicated with Receiver): %s", channel)
 
+	h := hub{
+		shutdownChan: make(chan int),
+	}
+
+	r := mux.NewRouter()
+	r.PathPrefix("/file/").Handler(http.StripPrefix("/file/", http.FileServer(http.Dir(dir))))
+	r.HandleFunc("/v1/complete", h.handleTransferComplete)
+
+	srv := &http.Server{
+		Handler: r,
+	}
+
+	h.srv = srv
+
 	// Start service
-	log.Fatalln(http.Serve(onion, http.FileServer(http.Dir(dir))))
+	if err := h.Serve(onion); err != http.ErrServerClosed {
+		log.Fatalln(err)
+	}
+	log.Println("Shutting down...")
 }
 
 // sendMsgToRelay sends initial handshake message to relay
@@ -81,7 +127,7 @@ func sendMsgToRelay(rMsg models.RelayMsg, relay, password string) (string, error
 		Timeout: 20 * time.Second,
 	}
 
-	resp, err := c.Post(relay, "application/json", bytes.NewReader(encrypted))
+	resp, err := c.Post(fmt.Sprintf("%s/v1/relay", relay), "application/json", bytes.NewReader(encrypted))
 	if err != nil {
 		return "", fmt.Errorf("error while sending message to relay: %v", err)
 	}
@@ -90,11 +136,18 @@ func sendMsgToRelay(rMsg models.RelayMsg, relay, password string) (string, error
 		return "", fmt.Errorf("error in response from relay: %v", resp.StatusCode)
 	}
 
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response from relay: %v", resp.StatusCode)
+	}
+
+	defer resp.Body.Close()
+
 	reply := models.RelayReply{}
-	err = json.NewDecoder(resp.Body).Decode(&reply)
+	err = json.Unmarshal(body, &reply)
 	if err != nil {
 		return "", errors.New("error reading JSON response from relay")
 	}
 
-	return reply.Channel, nil
+	return reply.Data.Channel, nil
 }

@@ -6,7 +6,12 @@ type RelayMsg struct {
 	FileName string `json:"filename"`
 }
 
+type Channel struct {
+	Channel string `json:"channel"`
+}
+
 // RelayReply is the reply from the relay
 type RelayReply struct {
-	Channel string `json:"channel"`
+	Message string  `json:"message"`
+	Data    Channel `json:"data"`
 }
