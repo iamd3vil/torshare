@@ -112,7 +112,7 @@ func sendMsgToRelay(rMsg models.RelayMsg, relay, password string) (string, error
 	// Encrypt the marshalled data using the password.
 	// We can use secretbox which uses XSalsa20 and Poly1305 to encrypt and authenticate messages
 	// For getting key from password, we will hash the password with Blake2b-256
-	key := blake2b.Sum256(j)
+	key := blake2b.Sum256([]byte(password))
 
 	// Generate random nonce
 	var nonce [24]byte
@@ -121,7 +121,7 @@ func sendMsgToRelay(rMsg models.RelayMsg, relay, password string) (string, error
 	}
 
 	// Seal using secretbox
-	encrypted := secretbox.Seal(nonce[:], []byte("hello world"), &nonce, &key)
+	encrypted := secretbox.Seal(nonce[:], j, &nonce, &key)
 
 	c := http.Client{
 		Timeout: 20 * time.Second,

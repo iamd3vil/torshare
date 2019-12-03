@@ -15,3 +15,9 @@ type RelayReply struct {
 	Message string  `json:"message"`
 	Data    Channel `json:"data"`
 }
+
+// RelayReplyMeta returns relay's reply for metadata about a channel
+type RelayReplyMeta struct {
+	Message string `json:"message"`
+	Data    []byte `json:"metadata"`
+}

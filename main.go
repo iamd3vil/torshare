@@ -14,5 +14,7 @@ func main() {
 
 	if *filePath != "" {
 		startSender(dir, filename, *relay)
+	} else {
+		startReceiver(*relay)
 	}
 }
