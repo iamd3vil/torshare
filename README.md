@@ -16,9 +16,23 @@ Once the transfer is completed, the receiver will send a message directly to sen
 
 ### Installation
 
+Latest version of Tor has to be installed before running the binary.
+
+For ubuntu, instead of installing ubuntu's repos, see [here](https://2019.www.torproject.org/docs/debian.html.en) and use Option two in that page to get the latest version of Tor.
+
 Precompiled binaries can be downloaded from [here](https://github.com/iamd3vil/torshare/releases).
 
 ### Usage
+
+```bash
+$ toshare -h
+Usage of ./dist/torshare.bin:
+  -file string
+    	File Path
+  -relay string
+    	Relay Address (default "https://torshare.sarat.dev")
+
+```
 
 #### Sending a file
 
