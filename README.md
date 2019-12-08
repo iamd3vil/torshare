@@ -25,7 +25,7 @@ Precompiled binaries can be downloaded from [here](https://github.com/iamd3vil/t
 ### Usage
 
 ```bash
-$ toshare -h
+$ torshare -h
 Usage of ./dist/torshare.bin:
   -file string
     	File Path
