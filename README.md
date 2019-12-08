@@ -13,3 +13,26 @@ When the sender starts the hidden node and sends the info the relay, the relay w
 The relay shouldn't be able to figure out anything related to the transfer. Since the file transfer is also done over the Tor network, the transfer is encrypted as well.
 
 Once the transfer is completed, the receiver will send a message directly to sender and sender will teardown the Tor hidden service.
+
+
+### Usage
+
+#### Sending a file
+
+```bash
+$ torshare -file sample.jpeg
+Enter Password: **********
+2019/12/07 23:18:22 Channel Name(Has to be communicated with Receiver): luckily-slogan-twitter-haunt-joystick-earwig
+```
+
+Channel name and password has to be shared with the receiver
+
+#### Receiving a file
+
+```bash
+$ torshare
+Enter channel name: luckily-slogan-twitter-haunt-joystick-earwig
+Enter Password: **********
+2019/12/08 14:19:07 Starting download for Burton Stein - The New Cambridge History of India_ Vijayanagara-Cambridge University Press (1990).pdf
+757.84 KiB / 9.04 MiB [===============>-----------------------------------]   8.19% 86.77 KiB/s 01m37s
+```
