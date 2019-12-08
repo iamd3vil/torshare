@@ -14,6 +14,9 @@ The relay shouldn't be able to figure out anything related to the transfer. Sinc
 
 Once the transfer is completed, the receiver will send a message directly to sender and sender will teardown the Tor hidden service.
 
+### Installation
+
+Precompiled binaries can be downloaded from [here](https://github.com/iamd3vil/torshare/releases).
 
 ### Usage
 
