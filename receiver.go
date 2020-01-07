@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/cretz/bine/tor"
 	"github.com/howeyc/gopass"
@@ -23,17 +22,17 @@ func startReceiver(relay string) {
 	fmt.Printf("Enter Channel Name: ")
 	fmt.Scan(&channel)
 
-	// Ask relay for metadata
-	rMsg, err := askRelayForMeta(relay, channel)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	os.RemoveAll("/tmp/datadirreceiver")
 	t, err := tor.Start(context.Background(), &tor.StartConf{
 		DataDir: "/tmp/datadirreceiver",
 	})
 	defer t.Close()
+
+	// Ask relay for metadata
+	rMsg, err := askRelayForMeta(t, relay, channel)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	log.Printf("Starting download for %s", rMsg.FileName)
 	err = DownloadFile(t, fmt.Sprintf("%s/file/%s", rMsg.TorAddr, rMsg.FileName), rMsg.FileName)
@@ -49,9 +48,17 @@ func startReceiver(relay string) {
 	}
 }
 
-func askRelayForMeta(relay, channel string) (*models.RelayMsg, error) {
-	client := http.Client{
-		Timeout: 20 * time.Second,
+func askRelayForMeta(t *tor.Tor, relay, channel string) (*models.RelayMsg, error) {
+	// Make connection
+	dialer, err := t.Dialer(context.Background(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: dialer.DialContext,
+		},
 	}
 
 	resp, err := client.Get(fmt.Sprintf("%s/v1/relay?channel=%s", relay, channel))

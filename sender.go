@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cretz/bine/tor"
 	"github.com/gorilla/mux"
 	"github.com/howeyc/gopass"
 	"github.com/iamd3vil/torshare/models"
@@ -70,7 +71,7 @@ func startSender(dir, filename, relay string) {
 		FileName: filename,
 	}
 
-	channel, err := sendMsgToRelay(rMsg, relay, string(password))
+	channel, err := sendMsgToRelay(t, rMsg, relay, string(password))
 	if err != nil {
 		log.Printf("error while handshake: %v", err)
 		return
@@ -102,7 +103,7 @@ func startSender(dir, filename, relay string) {
 // sendMsgToRelay sends initial handshake message to relay
 // This returns a channel name which the receiver has to send to relay
 // for getting details.
-func sendMsgToRelay(rMsg models.RelayMsg, relay, password string) (string, error) {
+func sendMsgToRelay(t *tor.Tor, rMsg models.RelayMsg, relay, password string) (string, error) {
 	// Marshal data
 	j, err := json.Marshal(rMsg)
 	if err != nil {
@@ -123,11 +124,19 @@ func sendMsgToRelay(rMsg models.RelayMsg, relay, password string) (string, error
 	// Seal using secretbox
 	encrypted := secretbox.Seal(nonce[:], j, &nonce, &key)
 
-	c := http.Client{
-		Timeout: 20 * time.Second,
+	// Make connection
+	dialer, err := t.Dialer(context.Background(), nil)
+	if err != nil {
+		return "", err
 	}
 
-	resp, err := c.Post(fmt.Sprintf("%s/v1/relay", relay), "application/json", bytes.NewReader(encrypted))
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			DialContext: dialer.DialContext,
+		},
+	}
+
+	resp, err := httpClient.Post(fmt.Sprintf("%s/v1/relay", relay), "application/json", bytes.NewReader(encrypted))
 	if err != nil {
 		return "", fmt.Errorf("error while sending message to relay: %v", err)
 	}
