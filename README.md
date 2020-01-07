@@ -4,7 +4,7 @@ TorShare enables file sharing between two parties over Tor.
 
 ### Design
 
-TorShare needs a relay server which just relays information between two parties. The relay server can't see the data being relayed since the data is encrypted using a shared key agreed between two parties.
+TorShare needs a relay server which just relays information between two parties. The relay server can't see the data being relayed since the data is encrypted using a shared key agreed between two parties. Also the relay server will be another onion service.
 
 The sender starts a Tor hidden service for the file which needs to be transmitted and the address is sent to the receiver using the relay server. The hidden node address and the file name to be received is encrypted using a password agreed between both sender and receiver. 
 
@@ -30,7 +30,7 @@ Usage of ./dist/torshare.bin:
   -file string
     	File Path
   -relay string
-    	Relay Address (default "https://torshare.sarat.dev")
+        Relay Address (default "http://torwg7vip577vofy2rqtervn7r42f6rh5ptsijmyhkmepr4e6vrddsid.onion")
 
 ```
 
